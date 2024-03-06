@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Concentration-Time Curve Generator</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 10px;
+        }
+
+        .input-group label {
+            display: inline-block;
+            width: 120px;
+        }
+
+        .input-group input {
+            width: 200px;
+            padding: 5px;
+            font-size: 14px;
+        }
+
+        .button-group {
+            margin-top: 20px;
+        }
+
+        .button-group button {
+            padding: 10px 20px;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+
+        #chart {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Concentration-Time Curve Generator</h1>
+    <div class="input-group">
+        <label for="time-points">Number of Data Points:</label>
+        <input type="number" id="time-points" min="2" step="1" value="5">
+    </div>
+
+    <div class="input-group">
+        <label for="time-unit">Time Unit:</label>
+        <input type="text" id="time-unit" value="hours">
+    </div>
+
+    <div class="input-group">
+        <label for="concentration-unit">Concentration Unit:</label>
+        <input type="text" id="concentration-unit" value="mg/L">
+    </div>
+
+    <div id="data-inputs">
+        <h2>Data Inputs</h2>
+    </div>
+
+    <div class="button-group">
+        <button onclick="addDataInput()">Add Data Point</button>
+        <button onclick="generateChart()">Generate Chart</button>
+    </div>
+
+    <div id="chart"></div>
+
+    <div id="pk-parameters">
+        <h2>PK Parameters</h2>
+        <div id="parameters"></div>
+    </div>
+
+    <script>
+        var dataInputs = [];
+
+        function addDataInput() {
+            var timePoints = +document.getElementById("time-points").value;
+
+            var dataInput = `
+                <div class="input-group">
+                    <label for="time">Time:</label>
+                    <input type="number" class="time" step="any">
+                    <label for="concentration">Concentration:</label>
+                    <input type="number" class="concentration" step="any">
+                </div>
+            `;
+
+            document.getElementById("data-inputs").insertAdjacentHTML('beforeend', dataInput);
+
+            if (dataInputs.length < timePoints) {
+                dataInputs.push({ time: 0, concentration: 0 });
+            }
+        }
+
+        function generateChart() {
+            var timePoints = +document.getElementById("time-points").value;
+            var timeUnit = document.getElementById("time-unit").value;
+            var concentrationUnit = document.getElementById("concentration-unit").value;
+
+            var timeData = [];
+            var concentrationData = [];
+
+            for (var i = 0; i < timePoints; i++) {
+                var timeInput = document.getElementsByClassName("time")[i];
+                var concentrationInput = document.getElementsByClassName("concentration")[i];
+
+                var time = +timeInput.value;
+                var concentration = +concentrationInput.value;
+
+                dataInputs[i].time = time;
+                dataInputs[i].concentration = concentration;
+
+                timeData.push(time);
+                concentrationData.push(concentration);
+            }
+
+            var trace = {
+                x: timeData,
+                y: concentrationData,
+                mode: 'lines+markers',
+                type: 'scatter'
+            };
+
+            var data = [trace];
+
+            var layout = {
+                title: 'Concentration-Time Curve',
+                xaxis: {
+                    title: {
+                        text: 'Time (' + timeUnit + ')',
+                        font: {
+                            size: 16,
+                            color: 'black',
+                            weight: 'bold'
+                        }
+                    },
+                    showgrid: false,
+                    tickfont: {
+                        size: 14,
+                        color: 'black'
+                    },
+                    ticklen: 8,
+                    tickwidth: 2,
+                    tickcolor: 'black',
+                    mirror: 'ticks',
+                    ticks: 'outside'
+                },
+                yaxis: {
+                    title: {
+                        text: 'Concentration (' + concentrationUnit + ')',
+                        font: {
+                            size: 16,
+                            color: 'black',
+                            weight: 'bold'
+                        }
+                    },
+                   showgrid: false,
+                    tickfont: {
+                        size: 14,
+                        color: 'black'
+                    },
+                    ticklen: 8,
+                    tickwidth: 2,
+                    tickcolor: 'black',
+                    mirror: 'ticks',
+                    ticks: 'outside'
+                },
+                showgrid: false
+            };
+
+            Plotly.newPlot('chart', data, layout);
+
+            // Calculate PK parameters
+            var maxConcentration = Math.max(...concentrationData);
+            var maxTimeIndex = concentrationData.indexOf(maxConcentration);
+            var maxTime = timeData[maxTimeIndex];
+
+            var halfMaxConcentration = maxConcentration / 2;
+            var halfMaxTimeIndex = concentrationData.findIndex(concentration => concentration >= halfMaxConcentration);
+            var halfMaxTime = timeData[halfMaxTimeIndex];
+
+            var slope = (maxConcentration - 0) / (maxTime - 0);
+            var eliminationHalfLife = Math.log(2) / Math.abs(slope);
+
+            var parameters = `
+                <p>Max Concentration: ${maxConcentration.toFixed(2)} ${concentrationUnit}</p>
+                <p>Time of Max Concentration: ${maxTime.toFixed(2)} ${timeUnit}</p>
+                <p>Half Max Concentration Time: ${halfMaxTime.toFixed(2)} ${timeUnit}</p>
+                <p>Elimination Half-Life: ${eliminationHalfLife.toFixed(2)} ${timeUnit}</p>
+            `;
+
+            document.getElementById("parameters").innerHTML = parameters;
+        }
+
+        // Initial data input
+        addDataInput();
+    </script>
+</body>
+</html>
